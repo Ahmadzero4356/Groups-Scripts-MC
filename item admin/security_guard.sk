@@ -20,7 +20,8 @@ every {@audit-interval} seconds:
         set {_player} to loop-player
 
         # ===== GLITCH / ILLEGAL MOVEMENT DETECTION =====
-        if location of {_player} is inside blocked area or outside world boundaries:
+        # إصلاح: استبدال 'blocked area' غير المعرّفة بفحص حدود ارتفاع العالم
+        if y coordinate of location of {_player} < -64 or y coordinate of location of {_player} > 320:
             if {zmx.guard.alert::%uuid of {_player}%} is not true:
                 set {zmx.guard.alert::%uuid of {_player}%} to true
                 send "{@console-prefix} 🔴 GLITCH DETECTED" to console
