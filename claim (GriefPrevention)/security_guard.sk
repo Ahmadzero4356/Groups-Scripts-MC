@@ -18,6 +18,9 @@ variables:
 every {@audit-interval} seconds:
     loop all players:
         set {_uuid} to uuid of loop-player
+        # إصلاح: تخطَّ اللاعب إذا لم يُضبط الحد (claim_by_level.sk غير محمّل)
+        if {zmx.claim.allowed::%{_uuid}%} is not set:
+            continue
         set {_allowed} to {zmx.claim.allowed::%{_uuid}%}
         set {_current} to placeholder "griefprevention_remainingclaims" of loop-player
         set {_current} to {_current} parsed as number
