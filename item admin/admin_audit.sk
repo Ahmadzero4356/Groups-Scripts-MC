@@ -1,0 +1,58 @@
+#################################################################
+# ZMX ADMIN AUDIT
+# Version: 1.0
+# Logs all admin actions and integrates reports from security/anti-cheat
+#################################################################
+
+options:
+    console-prefix: "&4[ZMX-AUDIT]"
+
+#################################################################
+# LOG PLAYER ACTIONS FROM ADMIN ITEM OR GUI
+#################################################################
+
+on console command "adminaction" with arguments:
+    set {_player} to arg-1
+    set {_action} to arg-2
+    # سجل كل استخدام في ملف أو متغير
+    add "%_action% by %_player% at %date% %time%" to {zmx.audit.log::*}
+    send "{@console-prefix} %{_player}% executed %{_action}%" to console
+
+#################################################################
+# RECEIVE REPORTS FROM SECURITY GUARD / ANTI-CHEAT
+#################################################################
+
+# مثال على استقبال تقارير من ملفات أخرى (يمكن ربط أي بلوغن)
+on skript event:
+    # Security Guard Alert
+    if event is "zmx_guard_alert":
+        set {_player} to event-player
+        set {_reason} to event-reason
+        add "SECURITY ALERT: %{_player}% - %{_reason}% at %date% %time%" to {zmx.audit.log::*}
+        send "{@console-prefix} Security alert from %{_player}%: %{_reason}%" to console
+
+    # Anti Cheat / Anti Hack Report
+    if event is "anticheat_report":
+        set {_player} to event-player
+        set {_type} to event-type
+        add "ANTICHEAT REPORT: %{_player}% - %{_type}% at %date% %time%" to {zmx.audit.log::*}
+        send "{@console-prefix} AntiCheat report: %{_player}% - %{_type}%" to console
+
+#################################################################
+# VIEW AUDIT LOG
+#################################################################
+
+command /auditlog:
+    permission: none
+    trigger:
+        if {zmx.rank::%uuid of player%} is not set:
+            send "&c[ZMX] You do not have permission to view the audit log." to player
+            stop
+
+        if size of {zmx.audit.log::*} is 0:
+            send "&e[ZMX] Audit log is empty." to player
+        else:
+            send "&6--- ZMX Audit Log ---" to player
+            loop {zmx.audit.log::*}:
+                send loop-value to player
+                

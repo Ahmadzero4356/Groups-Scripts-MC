@@ -1,0 +1,63 @@
+#################################################################
+# ZMX SECURITY GUARD – FINAL (Claim-Independent)
+# Version: 1.1
+# Monitors Server, Exploits, Glitches, Lag & Security
+#################################################################
+
+options:
+    audit-interval: 60        # عدد الثواني بين كل فحص
+    console-prefix: "&4[ZMX-GUARD]"
+
+variables:
+    {zmx.guard.alert::*}       # لمنع تكرار التحذيرات لكل لاعب
+
+#################################################################
+# ANTI-EXPLOIT / ANTI-GLITCH / PLAYER MONITOR
+#################################################################
+
+every {@audit-interval} seconds:
+    loop all players:
+        set {_player} to loop-player
+
+        # ===== GLITCH / ILLEGAL MOVEMENT DETECTION =====
+        if location of {_player} is inside blocked area or outside world boundaries:
+            if {zmx.guard.alert::%uuid of {_player}%} is not true:
+                set {zmx.guard.alert::%uuid of {_player}%} to true
+                send "{@console-prefix} 🔴 GLITCH DETECTED" to console
+                send "{@console-prefix} Player: %{_player}%" to console
+                send "{@console-prefix} Location: %{location of {_player}}%" to console
+
+        else:
+            delete {zmx.guard.alert::%uuid of {_player}%}
+
+#################################################################
+# TPS & LAG MONITOR
+#################################################################
+
+every 60 seconds:
+    set {_tps} to tps
+    if {_tps} < 16:
+        send "{@console-prefix} 🔴 LOW TPS DETECTED: %{_tps}%" to console
+        send "{@console-prefix} Check heavy events or plugins" to console
+
+#################################################################
+# PLUGIN MONITOR (Compatibility Check)
+#################################################################
+
+every 120 seconds:
+    loop all loaded plugins:
+        set {_p} to loop-plugin
+        if name of {_p} is "GriefPrevention" or name of {_p} is "Clans" or name of {_p} is "SecurityGuard":
+            continue
+        # يمكن إضافة أي بلوغن آخر يحتاج مراقبة
+        # تحذير بسيط إذا حصل خلل في تحميل أي بلوغن
+        if {_p} is not enabled:
+            send "{@console-prefix} ⚠️ Plugin disabled: %{_p}%" to console
+
+#################################################################
+# LOG SYSTEM READY
+#################################################################
+
+on skript load:
+    send "&a[ZMX-GUARD] Security Guard loaded successfully (Claim-Independent)." to console
+    

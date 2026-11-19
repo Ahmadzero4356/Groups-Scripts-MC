@@ -1,0 +1,63 @@
+#################################################################
+# ZMX ADMIN PERMISSIONS
+# Version: 1.0
+# Checks player rank before allowing any admin action
+#################################################################
+
+options:
+    console-prefix: "&4[ZMX-PERM]"
+
+#################################################################
+# PERMISSION CHECK FOR GUI BUTTONS
+#################################################################
+
+function hasAdminPermission(p: player, action: text) :: boolean:
+    # جلب رتبة اللاعب
+    set {_rank} to {zmx.rank::%uuid of p%}
+    if {_rank} is not set:
+        return false
+
+    # Owner = كل الصلاحيات
+    if {_rank} = "Owner":
+        return true
+
+    # Admin = معظم الصلاحيات ما عدا Security Tools / حذف Owner Clan
+    if {_rank} = "Admin":
+        if {_action} is "SecurityTools" or {_action} is "DeleteOwnerClan":
+            return false
+        return true
+
+    # Helper = وظائف محدودة
+    if {_rank} = "Helper":
+        if {_action} is "ClanManagement" or {_action} is "PlayerManagement":
+            return true
+        return false
+
+    return false
+
+#################################################################
+# GUI CLICK HANDLER WITH PERMISSION CHECK
+#################################################################
+
+on inventory click:
+    if name of event-inventory contains "&6ZMX Admin Panel":
+        cancel event
+        set {_p} to player
+        set {_slot} to clicked slot
+
+        # ربط كل زر باسم الوظيفة
+        if {_slot} = 10: set {_action} to "ClanManagement"
+        if {_slot} = 12: set {_action} to "PlayerManagement"
+        if {_slot} = 14: set {_action} to "ServerMonitor"
+        if {_slot} = 16: set {_action} to "QuickCommands"
+        if {_slot} = 18: set {_action} to "SecurityTools"
+
+        # تحقق من الصلاحية
+        if not hasAdminPermission({_p}, {_action}):
+            send "&c[ZMX] You do not have permission to use this function." to {_p}
+            send "{@console-prefix} ⚠️ %{_p}% tried to use %{_action}%" to console
+            stop
+
+        # إذا مر الفحص، تنفذ الوظيفة (placeholder: linked commands)
+        execute console command "adminaction %{_p}% %{_action}%"
+        

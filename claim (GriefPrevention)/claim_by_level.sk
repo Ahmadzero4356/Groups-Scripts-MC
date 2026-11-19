@@ -1,0 +1,114 @@
+#################################################################
+# ZMX CLAIM BY LEVEL SYSTEM
+# Version: FINAL
+# Author: ZMX Core
+# Requirements:
+# - Skript 2.12+
+# - AuraSkills
+# - GriefPrevention
+# - PlaceholderAPI
+#################################################################
+
+options:
+    # ======= SETTINGS =======
+    base-claim: 100          # Claim blocks عند المستوى 1
+    claim-per-level: 75      # الزيادة لكل مستوى
+    max-claim: 50000         # الحد الأقصى (أمني)
+    audit-interval: 120      # فحص أمني كل X ثانية
+    strict-mode: true
+
+#################################################################
+# INTERNAL STORAGE
+#################################################################
+
+variables:
+    {zmx.claim.allowed::*}   # claim المسموح
+    {zmx.claim.last::*}      # آخر قيمة صحيحة
+    {zmx.claim.alert::*}     # منع تكرار التحذير
+
+#################################################################
+# UTILS
+#################################################################
+
+function zmx_level(p: player) :: number:
+    set {_lvl} to placeholder "auraskills_level" of {_p}
+    if {_lvl} is not set:
+        return 1
+    return {_lvl} parsed as number
+
+function zmx_calc_claim(level: number) :: number:
+    set {_calc} to {@base-claim} + ({@claim-per-level} * ({_level} - 1))
+    if {_calc} > {@max-claim}:
+        set {_calc} to {@max-claim}
+    return {_calc}
+
+#################################################################
+# APPLY CLAIM ON JOIN
+#################################################################
+
+on join:
+    wait 2 seconds
+    set {_lvl} to zmx_level(player)
+    set {_allowed} to zmx_calc_claim({_lvl})
+    set {zmx.claim.allowed::%uuid of player%} to {_allowed}
+    set {zmx.claim.last::%uuid of player%} to {_allowed}
+    execute console command "acb %player% set %{_allowed}%"
+
+#################################################################
+# APPLY CLAIM ON LEVEL UP
+#################################################################
+
+every 5 seconds:
+    loop all players:
+        set {_uuid} to uuid of loop-player
+        set {_lvl} to zmx_level(loop-player)
+        set {_allowed} to zmx_calc_claim({_lvl})
+
+        if {zmx.claim.allowed::%{_uuid}%} is not {_allowed}:
+            set {zmx.claim.allowed::%{_uuid}%} to {_allowed}
+            set {zmx.claim.last::%{_uuid}%} to {_allowed}
+            execute console command "acb %loop-player% set %{_allowed}%"
+
+#################################################################
+# STRICT MODE – ANTI EXPLOIT
+#################################################################
+
+every {@audit-interval} seconds:
+    loop all players:
+        set {_uuid} to uuid of loop-player
+        set {_allowed} to {zmx.claim.allowed::%{_uuid}%}
+        set {_current} to placeholder "griefprevention_remainingclaims" of loop-player
+        set {_current} to {_current} parsed as number
+
+        if {_current} > {_allowed}:
+            if {@strict-mode} is true:
+                execute console command "acb %loop-player% set %{_allowed}%"
+
+                if {zmx.claim.alert::%{_uuid}%} is not true:
+                    set {zmx.claim.alert::%{_uuid}%} to true
+                    send "&4[ZMX-CLAIM] &cEXPLOIT DETECTED" to console
+                    send "&4Player: &f%loop-player%" to console
+                    send "&4Current: &f%{_current}%" to console
+                    send "&4Allowed: &f%{_allowed}%" to console
+                    send "&4Action: &fReset to allowed value" to console
+
+        else:
+            delete {zmx.claim.alert::%{_uuid}%}
+
+#################################################################
+# SAFETY: PREVENT NEGATIVE OR CORRUPT VALUES
+#################################################################
+
+on quit:
+    set {_uuid} to uuid of player
+    if {zmx.claim.allowed::%{_uuid}%} < 0:
+        set {zmx.claim.allowed::%{_uuid}%} to {@base-claim}
+    if {zmx.claim.allowed::%{_uuid}%} > {@max-claim}:
+        set {zmx.claim.allowed::%{_uuid}%} to {@max-claim}
+
+#################################################################
+# LOG SYSTEM READY
+#################################################################
+
+on skript load:
+    send "&a[ZMX-CLAIM] Claim by Level system loaded successfully." to console

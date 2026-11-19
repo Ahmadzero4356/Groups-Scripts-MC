@@ -1,0 +1,91 @@
+#################################################################
+# ZMX CORE BOOT
+# Version: 1.0.0 (FINAL)
+# Role: Central Security & Stability Hub
+# OBSERVE • LOG • ALERT
+# DO NOT MODIFY AFTER DEPLOY
+#################################################################
+
+options:
+    zmx-prefix: &4[ZMX-CORE]&r
+    zmx-alert-color: &c
+    zmx-warning-color: &6
+    zmx-info-color: &7
+
+#################################################################
+# INTERNAL STATE
+#################################################################
+
+# Core Boot status
+set {zmx.core.status} to "OFFLINE"
+set {zmx.core.boot_time} to 0
+set {zmx.core.logs::*} to {}
+
+#################################################################
+# SERVER LOAD / UNLOAD
+#################################################################
+
+on load:
+    set {zmx.core.status} to "ONLINE"
+    set {zmx.core.boot_time} to now
+    broadcast_console "{@zmx-prefix} &aCore Boot loaded successfully."
+    broadcast_console "{@zmx-prefix} &7Mode: OBSERVE ONLY (no events blocked)."
+
+on unload:
+    set {zmx.core.status} to "OFFLINE"
+    broadcast_console "{@zmx-prefix} &cCore Boot unloaded."
+
+#################################################################
+# CORE API – RECEIVE ALERTS
+#################################################################
+
+# Function: receive alerts from any system
+# Usage: Security Guard, Event Watchdog, ACIL
+function zmx_core_alert(source: text, level: text, detail: text, advice: text):
+    set {_time} to now
+    # Store log entry centrally
+    add "%{_time}% | %{source}% | %{level}% | %{detail}% | %{advice}%" to {zmx.core.logs::*}
+
+    # Display alert in console
+    if {_level} is "CRITICAL":
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}CRITICAL ISSUE DETECTED"
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Source: %{source}%"
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Detail: %{detail}%"
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Advice: %{advice}%"
+    else if {_level} is "WARNING":
+        broadcast_console "{@zmx-prefix} {@zmx-warning-color}WARNING"
+        broadcast_console "{@zmx-prefix} &7Source: %{source}%"
+        broadcast_console "{@zmx-prefix} &7Detail: %{detail}%"
+    else:
+        broadcast_console "{@zmx-prefix} {@zmx-info-color}INFO | %{source}% → %{detail}%"
+
+#################################################################
+# CORE STATUS QUERY (FOR ADMIN ITEM / GUI)
+#################################################################
+
+# Returns current status of Core Boot
+function zmx_core_status() :: text:
+    return {zmx.core.status}
+
+# Returns number of logs stored
+function zmx_core_log_count() :: number:
+    return size of {zmx.core.logs::*}
+
+# Return last X logs for GUI
+function zmx_core_get_logs(limit: number) :: list:
+    set {_count} to size of {zmx.core.logs::*}
+    set {_start} to {_count} - {_limit} + 1
+    if {_start} < 1:
+        set {_start} to 1
+    set {_logs::*} to {zmx.core.logs::*} parsed from {_start} to {_count}
+    return {_logs::*}
+
+#################################################################
+# PROTECTION RULES
+#################################################################
+
+# Core Boot never cancels events or interacts with gameplay
+# Only records and alerts
+#################################################################
+# END OF CORE BOOT
+#################################################################

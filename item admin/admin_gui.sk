@@ -1,0 +1,85 @@
+#################################################################
+# ZMX ADMIN GUI – Dynamic Admin Interface
+# Version: 1.0
+# GUI shows buttons only according to player rank
+#################################################################
+
+options:
+    gui-title: "&6ZMX Admin Panel"
+    gui-size: 27
+
+# الأزرار حسب الوظائف
+variables:
+    {zmx.gui.buttons::ClanManagement} = 10
+    {zmx.gui.buttons::PlayerManagement} = 12
+    {zmx.gui.buttons::ServerMonitor} = 14
+    {zmx.gui.buttons::QuickCommands} = 16
+    {zmx.gui.buttons::SecurityTools} = 18
+
+#################################################################
+# OPEN GUI COMMAND (used by admin_item.sk)
+#################################################################
+
+command /openadmingui [<player>]:
+    trigger:
+        # فتح GUI فقط للرتب المسموح بها
+        if {zmx.rank::%uuid of player%} is not set:
+            send "&c[ZMX] You do not have permission to open the Admin GUI." to player
+            stop
+        open virtual chest inventory with size {@gui-size} named {@gui-title} to player
+
+        # Clan Management button
+        if {zmx.rank::%uuid of player%} is "Owner" or "Admin" or "Helper":
+            set slot {zmx.gui.buttons::ClanManagement} of player to paper named "&bClan Management" with lore "&7Create, delete, invite, promote, demote"
+
+        # Player Management button
+        if {zmx.rank::%uuid of player%} is "Owner" or "Admin" or "Helper":
+            set slot {zmx.gui.buttons::PlayerManagement} of player to book named "&aPlayer Management" with lore "&7Teleport, Kick, Ban, Freeze, Stats"
+
+        # Server Monitor button
+        if {zmx.rank::%uuid of player%} is "Owner" or "Admin":
+            set slot {zmx.gui.buttons::ServerMonitor} of player to compass named "&eServer Monitor" with lore "&7TPS, Lag, Security Alerts"
+
+        # Quick Commands button
+        if {zmx.rank::%uuid of player%} is "Owner" or "Admin":
+            set slot {zmx.gui.buttons::QuickCommands} of player to blaze_rod named "&6Quick Commands" with lore "&7Crates, Kits, Economy, Utilities"
+
+        # Security Tools button
+        if {zmx.rank::%uuid of player%} is "Owner":
+            set slot {zmx.gui.buttons::SecurityTools} of player to nether_star named "&cSecurity Tools" with lore "&7Quick Fix, Glitch Repair, Audit Log"
+
+#################################################################
+# GUI CLICK HANDLER
+#################################################################
+
+on inventory click:
+    if name of event-inventory is {@gui-title}:
+        cancel event
+        set {_p} to player
+        set {_slot} to clicked slot
+
+        # Clan Management
+        if {_slot} = {zmx.gui.buttons::ClanManagement}:
+            execute console command "openclanmenu %{_p}%" 
+            send "&b[ZMX] Opening Clan Management..." to {_p}
+
+        # Player Management
+        if {_slot} = {zmx.gui.buttons::PlayerManagement}:
+            execute console command "openplayermenu %{_p}%"
+            send "&a[ZMX] Opening Player Management..." to {_p}
+
+        # Server Monitor
+        if {_slot} = {zmx.gui.buttons::ServerMonitor}:
+            execute console command "showserverstatus %{_p}%"
+            send "&e[ZMX] Showing Server Monitor..." to {_p}
+
+        # Quick Commands
+        if {_slot} = {zmx.gui.buttons::QuickCommands}:
+            execute console command "quickadmin %{_p}%"
+            send "&6[ZMX] Executing Quick Commands..." to {_p}
+
+        # Security Tools
+        if {_slot} = {zmx.gui.buttons::SecurityTools}:
+            execute console command "securitytools %{_p}%"
+            send "&c[ZMX] Opening Security Tools..." to {_p}"
+            

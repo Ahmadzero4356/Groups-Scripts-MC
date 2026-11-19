@@ -1,0 +1,58 @@
+#################################################################
+# ZMX ADMIN QUICKFIX
+# Version: 1.0
+# Quick fixes for server: Glitch, Lag, Overloaded chunks
+#################################################################
+
+options:
+    console-prefix: "&4[ZMX-QUICKFIX]"
+
+#################################################################
+# QUICK FIX COMMANDS
+#################################################################
+
+command /quickfix [<text>]:
+    permission: none
+    trigger:
+        if {zmx.rank::%uuid of player%} is not set:
+            send "&c[ZMX] You do not have permission to use Quick Fix." to player
+            stop
+
+        # تحديد نوع الإصلاح من الوسيط
+        if arg is "lag":
+            send "&a[ZMX] Performing server lag fix..." to player
+            execute console command "lagfix"
+            send "{@console-prefix} %{player}% triggered lag fix." to console
+
+        else if arg is "glitch":
+            send "&a[ZMX] Repairing player glitches..." to player
+            loop all players:
+                # مثال إصلاح أي glitch detected سابقًا
+                if {zmx.guard.alert::%uuid of loop-player%} is set:
+                    teleport loop-player to world spawn
+                    delete {zmx.guard.alert::%uuid of loop-player%}
+            send "{@console-prefix} %{player}% repaired player glitches." to console
+
+        else if arg is "chunks":
+            send "&a[ZMX] Reloading world chunks..." to player
+            loop all worlds:
+                regenerate chunks
+            send "{@console-prefix} %{player}% reloaded all world chunks." to console
+
+        else:
+            send "&eUsage: /quickfix <lag|glitch|chunks>" to player
+
+#################################################################
+# GUI BUTTON LINK
+#################################################################
+
+on inventory click:
+    if name of event-inventory contains "&6ZMX Admin Panel":
+        set {_p} to player
+        set {_slot} to clicked slot
+
+        if {_slot} = 18: # Security Tools / Quick Fix button
+            send "&a[ZMX] Opening Quick Fix Menu..." to {_p}
+            # مثال سريع، يمكن استبداله بـ GUI فرعي
+            send "&eClick /quickfix lag | glitch | chunks to perform quick fixes" to {_p}
+            

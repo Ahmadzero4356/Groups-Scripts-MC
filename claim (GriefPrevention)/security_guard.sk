@@ -1,0 +1,74 @@
+#################################################################
+# ZMX SECURITY GUARD – FINAL
+# Version: 1.0
+# Fully compatible with claim_by_level.sk & claim_gui.sk
+#################################################################
+
+options:
+    audit-interval: 60        # عدد الثواني بين كل فحص
+    console-prefix: "&4[ZMX-GUARD]"
+
+variables:
+    {zmx.guard.alert::*}       # لمنع تكرار التحذيرات لكل لاعب
+
+#################################################################
+# ANTI-EXPLOIT / ANTI-GLITCH
+#################################################################
+
+every {@audit-interval} seconds:
+    loop all players:
+        set {_uuid} to uuid of loop-player
+        set {_allowed} to {zmx.claim.allowed::%{_uuid}%}
+        set {_current} to placeholder "griefprevention_remainingclaims" of loop-player
+        set {_current} to {_current} parsed as number
+
+        # ===== Claim Overuse Detection =====
+        if {_current} > {_allowed}:
+            # ضبط تلقائي للقيمة الصحيحة
+            execute console command "acb %loop-player% set %{_allowed}%"
+
+            # تحذير أحمر واحد لكل لاعب حتى تُحل المشكلة
+            if {zmx.guard.alert::%{_uuid}%} is not true:
+                set {zmx.guard.alert::%{_uuid}%} to true
+                send "{@console-prefix} 🔴 EXPLOIT DETECTED" to console
+                send "{@console-prefix} Player: %loop-player%" to console
+                send "{@console-prefix} Current: %{_current}%" to console
+                send "{@console-prefix} Allowed: %{_allowed}%" to console
+                send "{@console-prefix} Action: Reset to allowed value" to console
+
+        else:
+            delete {zmx.guard.alert::%{_uuid}%}
+
+#################################################################
+# ANTI-GLITCH / REGION CHECK
+#################################################################
+
+every {@audit-interval} seconds:
+    loop all players:
+        # تحقق سريع من موقع اللاعب داخل منطقة محمية
+        set {_loc} to location of loop-player
+        if {_loc} is inside a claim:
+            set {_claimowner} to owner of claim at {_loc}
+            if {_claimowner} is not loop-player:
+                # تحذير في الكونسول فقط
+                send "{@console-prefix} 🔴 GLITCH / ILLEGAL ENTRY DETECTED" to console
+                send "{@console-prefix} Player: %loop-player%" to console
+                send "{@console-prefix} Claim Owner: %{_claimowner}%" to console
+
+#################################################################
+# TPS & LAG MONITOR (OPTIONAL)
+#################################################################
+
+every 60 seconds:
+    set {_tps} to tps
+    if {_tps} < 16:
+        send "{@console-prefix} 🔴 LOW TPS DETECTED: %{_tps}%" to console
+        send "{@console-prefix} Check heavy events or plugins" to console
+
+#################################################################
+# LOG SYSTEM READY
+#################################################################
+
+on skript load:
+    send "&a[ZMX-GUARD] Security Guard loaded successfully." to console
+    

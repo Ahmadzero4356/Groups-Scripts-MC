@@ -1,0 +1,43 @@
+#################################################################
+# ZMX ADMIN ITEM – Admin List
+# Version: 1.0
+# Item gives full admin functions depending on rank
+#################################################################
+
+options:
+    admin-item-name: "&6Admin List"
+    owner-color: "&6"
+    admin-color: "&9"
+    helper-color: "&a"
+
+# قائمة الرتب
+variables:
+    {zmx.rank::*} # تخزين رتب اللاعبين: Owner / Admin / Helper
+
+#################################################################
+# GIVE ADMIN ITEM COMMAND
+#################################################################
+
+command /getadminitem:
+    trigger:
+        if {zmx.rank::%uuid of player%} is "Owner" or "Admin" or "Helper":
+            # إنشاء الكتاب أو العنصر المخصص
+            give player written book named {@admin-item-name} with lore "&7Use to open Admin GUI"  
+            send "&a[ZMX] You received your Admin Item!" to player
+        else:
+            send "&c[ZMX] You do not have permission to get this item." to player
+
+#################################################################
+# CHECK ITEM USAGE
+#################################################################
+
+on rightclick with written book:
+    if name of player's tool is {@admin-item-name}:
+        # تحقق من الرتبة
+        if {zmx.rank::%uuid of player%} is not set:
+            cancel event
+            send "&c[ZMX] You do not have permission to use this item." to player
+            stop
+        # فتح GUI لاحقًا (admin_gui.sk)
+        execute console command "openadmingui %player%"
+        

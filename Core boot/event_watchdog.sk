@@ -1,0 +1,109 @@
+#################################################################
+# EVENT WATCHDOG
+# Version: 1.1.0 (FUTURE-PROOF)
+# Role: Monitor server events and report anomalies to Core Boot
+# OBSERVE ONLY – NO BLOCKING
+#################################################################
+
+options:
+    zmx-prefix: &4[ZMX-EVENT]&r
+    zmx-alert-color: &c
+    zmx-warning-color: &6
+    zmx-info-color: &7
+    zmx-spam-threshold: 50
+    zmx-loop-threshold: 100
+    zmx-check-interval: 5 # seconds for periodic reset
+
+#################################################################
+# INTERNAL STATE
+#################################################################
+
+# Track events per player, per type
+set {zmx.event.count::*} to 0
+set {zmx.event.last_time::*} to now
+set {zmx.event.spam_detected::*} to false
+
+#################################################################
+# CORE ALERT FUNCTION
+#################################################################
+
+# Wrap Core Boot alert to simplify usage
+function zmx_event_alert(source: text, level: text, detail: text, advice: text):
+    zmx_core_alert(source, level, detail, advice)
+    # Optional: store locally for Admin Item GUI
+    add "%now% | %{source}% | %{level}% | %{detail}% | %{advice}%" to {zmx.event.logs::*}
+
+#################################################################
+# EVENT MONITORING
+#################################################################
+
+# Example: player movement monitoring
+on player move:
+    add 1 to {zmx.event.count::move::%uuid of player%}
+    set {_count} to {zmx.event.count::move::%uuid of player%}
+
+    if {_count} > {@zmx-spam-threshold}:
+        if not {zmx.event.spam_detected::move::%uuid of player%}:
+            zmx_event_alert("event_watchdog", "WARNING", "Player %player% move event triggered %{_count}% times rapidly", "Check for abnormal behavior or plugin conflict")
+            set {zmx.event.spam_detected::move::%uuid of player%} to true
+
+# Block break monitoring
+on break of block:
+    add 1 to {zmx.event.count::break::%uuid of player%}
+    if {zmx.event.count::break::%uuid of player%} > {@zmx-loop-threshold}:
+        zmx_event_alert("event_watchdog", "WARNING", "Player %player% triggered excessive block break events", "Investigate plugin or client behavior")
+        set {zmx.event.count::break::%uuid of player%} to 0
+
+# Chat spam detection
+on chat:
+    add 1 to {zmx.event.count::chat::%uuid of player%}
+    if {zmx.event.count::chat::%uuid of player%} > {@zmx-spam-threshold}:
+        zmx_event_alert("event_watchdog", "WARNING", "Player %player% chat spam detected", "Consider cooldown or moderation")
+        set {zmx.event.count::chat::%uuid of player%} to 0
+
+# Command spam / excessive usage detection
+on command:
+    add 1 to {zmx.event.count::command::%uuid of player%}
+    if {zmx.event.count::command::%uuid of player%} > {@zmx-spam-threshold}:
+        zmx_event_alert("event_watchdog", "WARNING", "Player %player% command spam detected", "Review command usage or add cooldown")
+        set {zmx.event.count::command::%uuid of player%} to 0
+
+#################################################################
+# FUTURE-PROOF FEATURE PLACEHOLDERS
+#################################################################
+
+# Placeholder for integration with plugins like:
+# - BattleArena / EasyCTF → monitor event triggers
+# - PvP / Kits / Crates → monitor rapid usage
+# - Animations / Cinematic → allow safe events
+# - Last Life / LifeSteal → detect unexpected triggers
+
+# Each can call:
+# zmx_event_alert("plugin_name", "INFO|WARNING|CRITICAL", "detail message", "advice message")
+
+#################################################################
+# PERIODIC RESET (every {@zmx-check-interval} seconds)
+#################################################################
+
+every {@zmx-check-interval} seconds:
+    loop {zmx.event.count::*}:
+        set loop-value to 0
+    loop {zmx.event.spam_detected::*}:
+        set loop-value to false
+
+#################################################################
+# ADMIN ITEM / GUI LOG ACCESS
+#################################################################
+
+# Function to retrieve last X event logs
+function zmx_event_get_logs(limit: number) :: list:
+    set {_total} to size of {zmx.event.logs::*}
+    set {_start} to {_total} - {_limit} + 1
+    if {_start} < 1:
+        set {_start} to 1
+    set {_logs::*} to {zmx.event.logs::*} parsed from {_start} to {_total}
+    return {_logs::*}
+
+#################################################################
+# END OF EVENT WATCHDOG
+#################################################################

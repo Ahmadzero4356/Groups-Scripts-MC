@@ -1,0 +1,47 @@
+#################################################################
+# ZMX CLAIM GUI – FINAL
+# Version: 1.0
+# Fully Compatible with claim_by_level.sk & Security Guard
+#################################################################
+
+options:
+    gui-title: "&6📊 Land & Progress"
+    gui-size: 27
+
+#################################################################
+# OPEN GUI FUNCTION
+#################################################################
+
+function openClaimGUI(p: player):
+    open chest inventory with size {@gui-size} named {@gui-title} to p
+    wait 1 tick
+
+    # ===== Player Level =====
+    set slot 11 of p with player skull named "&bLevel" with lore "&7Aura Level: %placeholder "auraskills_level" of p%"
+    
+    # ===== Player Claim Blocks =====
+    set {_claim} to {zmx.claim.allowed::%uuid of p%}
+    set slot 13 of p with diamond named "&aClaim Blocks" with lore "&7Available: %{_claim}%"
+    
+    # ===== System Status =====
+    set slot 15 of p with chest named "&eSystem Status" with lore "&7Security: Stable"
+
+    # ===== Milestones / Rewards =====
+    set slot 19 of p with emerald named "&aNext Milestone" with lore "&7Next Claim Reward at next level"
+
+    # ===== Sync Button =====
+    set slot 22 of p with emerald named "&aSync Claims" with lore "&7Synchronize your Claim Blocks safely" to close then run:
+        execute console command "acb %player% set %{_claim}%"
+        send "&a[ZMX-CLAIM] Claim Blocks synchronized." to player
+
+    # ===== Close =====
+    set slot 26 of p with barrier named "&cClose" to close
+
+#################################################################
+# COMMAND TO OPEN GUI
+#################################################################
+
+command /claimgui:
+    trigger:
+        openClaimGUI(player)
+        
