@@ -1,7 +1,10 @@
 #################################################################
-# ZMX SECURITY GUARD – FINAL
-# Version: 1.0
-# Fully compatible with claim_by_level.sk & claim_gui.sk
+# ZMX SECURITY GUARD – MERGED (v2.0)
+# دمج نسختي item admin و claim (GriefPrevention) في ملف واحد
+# - فحص الحركة غير الطبيعية (ارتفاع العالم) — مستقل عن الـ claims
+# - فحص تجاوز عدد الـ claims — يعمل فقط إذا حُمّل claim_by_level.sk
+# - فحص دخول منطقة claim غير مملوكة — تحذير في الكونسول فقط
+# - مراقبة TPS ومراقبة الإضافات
 #################################################################
 
 options:
@@ -9,57 +12,77 @@ options:
     console-prefix: "&4[ZMX-GUARD]"
 
 variables:
-    {zmx.guard.alert::*}       # لمنع تكرار التحذيرات لكل لاعب
+    {zmx.guard.glitch::*}     # تحذير الحركة غير الطبيعية لكل لاعب
+    {zmx.guard.claim::*}      # تحذير تجاوز الـ claims لكل لاعب
+    {zmx.guard.region::*}     # تحذير دخول منطقة غير مملوكة لكل لاعب
 
 #################################################################
-# ANTI-EXPLOIT / ANTI-GLITCH
+# ANTI-GLITCH / ILLEGAL MOVEMENT (ارتفاع العالم)
 #################################################################
 
 every {@audit-interval} seconds:
     loop all players:
         set {_uuid} to uuid of loop-player
-        # إصلاح: تخطَّ اللاعب إذا لم يُضبط الحد (claim_by_level.sk غير محمّل)
+        if y coordinate of location of loop-player < -64 or y coordinate of location of loop-player > 320:
+            if {zmx.guard.glitch::%{_uuid}%} is not true:
+                set {zmx.guard.glitch::%{_uuid}%} to true
+                send "{@console-prefix} 🔴 GLITCH DETECTED" to console
+                send "{@console-prefix} Player: %loop-player%" to console
+                send "{@console-prefix} Location: %location of loop-player%" to console
+        else:
+            delete {zmx.guard.glitch::%{_uuid}%}
+
+#################################################################
+# ANTI-EXPLOIT (تجاوز عدد الـ claims)
+#################################################################
+
+every {@audit-interval} seconds:
+    loop all players:
+        set {_uuid} to uuid of loop-player
+        # تخطَّ اللاعب إذا لم يُضبط الحد (claim_by_level.sk غير محمّل)
         if {zmx.claim.allowed::%{_uuid}%} is not set:
             continue
         set {_allowed} to {zmx.claim.allowed::%{_uuid}%}
         set {_current} to placeholder "griefprevention_remainingclaims" of loop-player
         set {_current} to {_current} parsed as number
 
-        # ===== Claim Overuse Detection =====
         if {_current} > {_allowed}:
             # ضبط تلقائي للقيمة الصحيحة
             execute console command "acb %loop-player% set %{_allowed}%"
 
-            # تحذير أحمر واحد لكل لاعب حتى تُحل المشكلة
-            if {zmx.guard.alert::%{_uuid}%} is not true:
-                set {zmx.guard.alert::%{_uuid}%} to true
+            # تحذير واحد لكل لاعب حتى تُحل المشكلة
+            if {zmx.guard.claim::%{_uuid}%} is not true:
+                set {zmx.guard.claim::%{_uuid}%} to true
                 send "{@console-prefix} 🔴 EXPLOIT DETECTED" to console
                 send "{@console-prefix} Player: %loop-player%" to console
                 send "{@console-prefix} Current: %{_current}%" to console
                 send "{@console-prefix} Allowed: %{_allowed}%" to console
                 send "{@console-prefix} Action: Reset to allowed value" to console
-
         else:
-            delete {zmx.guard.alert::%{_uuid}%}
+            delete {zmx.guard.claim::%{_uuid}%}
 
 #################################################################
-# ANTI-GLITCH / REGION CHECK
+# ANTI-GLITCH / REGION CHECK (تحذير في الكونسول فقط، مرة واحدة)
 #################################################################
 
 every {@audit-interval} seconds:
     loop all players:
-        # تحقق سريع من موقع اللاعب داخل منطقة محمية
+        set {_uuid} to uuid of loop-player
         set {_loc} to location of loop-player
         if {_loc} is inside a claim:
-            set {_claimowner} to owner of claim at {_loc}
-            if {_claimowner} is not loop-player:
-                # تحذير في الكونسول فقط
-                send "{@console-prefix} 🔴 GLITCH / ILLEGAL ENTRY DETECTED" to console
-                send "{@console-prefix} Player: %loop-player%" to console
-                send "{@console-prefix} Claim Owner: %{_claimowner}%" to console
+            # المقارنة بالنص لأن اسم المالك نص وليس كائن لاعب
+            set {_claimowner} to "%owner of claim at {_loc}%"
+            if {_claimowner} is not "%loop-player%":
+                if {zmx.guard.region::%{_uuid}%} is not true:
+                    set {zmx.guard.region::%{_uuid}%} to true
+                    send "{@console-prefix} 🔴 ILLEGAL ENTRY DETECTED" to console
+                    send "{@console-prefix} Player: %loop-player%" to console
+                    send "{@console-prefix} Claim Owner: %{_claimowner}%" to console
+        else:
+            delete {zmx.guard.region::%{_uuid}%}
 
 #################################################################
-# TPS & LAG MONITOR (OPTIONAL)
+# TPS & LAG MONITOR
 #################################################################
 
 every 60 seconds:
@@ -69,9 +92,20 @@ every 60 seconds:
         send "{@console-prefix} Check heavy events or plugins" to console
 
 #################################################################
+# PLUGIN MONITOR (Compatibility Check)
+#################################################################
+
+every 120 seconds:
+    loop all loaded plugins:
+        set {_p} to loop-plugin
+        if name of {_p} is "GriefPrevention" or name of {_p} is "Clans" or name of {_p} is "SecurityGuard":
+            continue
+        if {_p} is not enabled:
+            send "{@console-prefix} ⚠️ Plugin disabled: %{_p}%" to console
+
+#################################################################
 # LOG SYSTEM READY
 #################################################################
 
 on skript load:
-    send "&a[ZMX-GUARD] Security Guard loaded successfully." to console
-    
+    send "&a[ZMX-GUARD] Security Guard v2.0 (merged) loaded successfully." to console
