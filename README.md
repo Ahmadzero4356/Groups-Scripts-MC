@@ -1,163 +1,173 @@
 # Groups Scripts MC
 
-A collection of Minecraft server scripts written in **Skript**, organized into three independent groups: server-core monitoring, GriefPrevention claim management, and administrative tools.
+مجموعة سكربتات **Skript** لسيرفر ماينكرافت، مقسّمة إلى ثلاث مجموعات مستقلة قدر الإمكان:
+مراقبة النواة (Core Boot)، إدارة الـ claims مع GriefPrevention، وأدوات الإدارة (Item Admin).
 
-> **Important:** These are server-side Skript files, not a standalone plugin. Review the requirements and external command integrations in each section before deploying them. The repository includes both the extracted source folders and ZIP archives.
+> هذه ملفات Skript على السيرفر وليست plugin. راجع المتطلبات والتكاملات في كل قسم قبل النشر،
+> واختبرها على سيرفر تجريبي أولاً.
 
-## Script Groups
+**نظرة سريعة (بالعربية):** انسخ الملفات المطلوبة من مجلدات المجموعات إلى `plugins/Skript/scripts/`،
+ثم أعد تحميل Skript وراجع الكونسول لأي أخطاء في التحليل. إذا استخدمت مجموعة Claim أو Item Admin،
+فاستخدم الملفات من المجموعتين معاً لأن `/quickfix glitch` يعتمد على متغيرات `security_guard.sk` في مجلد Claim.
+
+---
+
+## المجموعات
 
 ### 1. Core Boot
 
-![Core Boot — Minecraft server core and monitoring](Core%20boot/core-boot.jpg)
+![Core Boot](Core%20boot/core-boot.jpg)
 
-A lightweight central alert and logging layer intended to receive reports from other scripts.
+طبقة مركزية للتنبيه والتسجيل تستقبل التقارير من السكربتات الأخرى. تعمل في وضع **المراقبة فقط**
+ولا تلغي أي حدث في اللعب.
 
-**Included files**
-
-| File | Purpose |
+| الملف | الوظيفة |
 |---|---|
-| [core_boot.sk](Core%20boot/core_boot.sk) | Maintains the core online/offline state, stores alert entries, prints INFO/WARNING/CRITICAL alerts to console, and exposes functions for status and log retrieval. |
-| [event_watchdog.sk](Core%20boot/event_watchdog.sk) | Observes player movement, block breaking, chat, and command events; reports threshold activity through the Core Boot alert function. |
+| [core_boot.sk](Core%20boot/core_boot.sk) | حالة النواة (ONLINE/OFFLINE)، تخزين السجلات، طباعة التنبيهات (INFO / WARNING / CRITICAL) في الكونسول. |
+| [event_watchdog.sk](Core%20boot/event_watchdog.sk) | مراقبة الحركة والكسر والدردشة والأوامر، والإبلاغ عن النشاط الزائد عبر دالة النواة. |
 
-**Integration functions**
+**الدوال المتاحة**
 
-- `zmx_core_alert(source, level, detail, advice)` — submit a central alert.
-- `zmx_core_status()` — return the core status.
-- `zmx_core_log_count()` — return the number of stored core log entries.
-- `zmx_core_get_logs(limit)` — retrieve recent core log entries.
-- `zmx_event_get_logs(limit)` — retrieve recent Event Watchdog entries.
+| الدالة | الوصف |
+|---|---|
+| `zmx_core_alert(source, level, detail, advice)` | إرسال تنبيه مركزي. `level` = `INFO` أو `WARNING` أو `CRITICAL`. |
+| `zmx_core_status()` | حالة النواة. |
+| `zmx_core_log_count()` | عدد سجلات النواة. |
+| `zmx_core_get_logs(limit)` | آخر `limit` سجلاً من النواة. |
+| `zmx_event_alert(source, level, detail, advice)` | يغلّف `zmx_core_alert` ويحفظ نسخة محلية. |
+| `zmx_event_get_logs(limit)` | آخر `limit` سجلاً من Event Watchdog. |
 
-**Configuration highlights**
+**الإعدادات الافتراضية (Event Watchdog)**
 
-- Event Watchdog movement/chat/command warning threshold: `50`.
-- Block-break warning threshold: `100`.
-- Event counter reset interval: `5 seconds`.
+- حد التكرار للحركة والدردشة والأوامر: `50`.
+- حد كسر الكتل: `100`.
+- فترة إعادة تعيين العدادات: `5` ثوانٍ.
 
-The scripts are designed for observation and console reporting; the Core Boot file explicitly states that it does not cancel gameplay events.
+---
 
 ### 2. Claim (GriefPrevention)
 
-![Claim — Minecraft land protection](claim%20(GriefPrevention)/claim-griefprevention.jpg)
+![Claim](claim%20(GriefPrevention)/claim-griefprevention.jpg)
 
-Connects player progression to GriefPrevention claim-block allowances, with a small player GUI and periodic claim-value checks.
+يربط عدد claim blocks المسموح للاعب بمستوى AuraSkills، ويضيف واجهة `/claimgui`، ومراقبة للتجاوزات.
 
-**Included files**
-
-| File | Purpose |
+| الملف | الوظيفة |
 |---|---|
-| [claim_by_level.sk](claim%20(GriefPrevention)/claim_by_level.sk) | Calculates claim-block allowance from the player's AuraSkills level, applies it on join and checks for level changes. |
-| [claim_gui.sk](claim%20(GriefPrevention)/claim_gui.sk) | Provides the `/claimgui` inventory interface with level, claim-block, status, milestone, and synchronization display elements. |
-| [security_guard.sk](claim%20(GriefPrevention)/security_guard.sk) | Periodically checks claim-block values and reports claim/region and low-TPS conditions to console. |
+| [claim_by_level.sk](claim%20(GriefPrevention)/claim_by_level.sk) | يحسب الحد من المستوى، يطبّقه عند الدخول وعند تغيّر المستوى، ويعيد الضبط عند التجاوز (Strict Mode). |
+| [claim_gui.sk](claim%20(GriefPrevention)/claim_gui.sk) | واجهة `/claimgui` تعرض المستوى وclaim blocks المتاحة وزر مزامنة. |
+| [security_guard.sk](claim%20(GriefPrevention)/security_guard.sk) | مراقبة: حدود ارتفاع العالم، تجاوز الـ claims، دخول منطقة غير مملوكة (كونسول فقط)، TPS، والإضافات المعطّلة. |
 
-**Default claim calculation**
+**حساب الحد**
 
-- Base allowance at level 1: `100` claim blocks.
-- Additional allowance per level: `75` claim blocks.
-- Maximum configured allowance: `50,000` claim blocks.
-- Claim allowance formula: `100 + 75 × (level − 1)`, capped at the configured maximum.
+- الحد الأساسي عند المستوى 1: `100`.
+- الزيادة لكل مستوى: `75`.
+- الحد الأقصى: `50000`.
+- الصيغة: `100 + 75 × (المستوى − 1)`، مع سقف `50000`.
+- يطبّق الحد بالأمر الكونسولي `acb <player> set <amount>`.
+- فحص التجاوز كل `120` ثانية (`audit-interval`) ويمكن إيقاف الإعادة التلقائية بـ `strict-mode: false`.
 
-The claim scripts use the console command `acb <player> set <amount>` to apply claim-block values.
+**المتطلبات**
 
-**Requirements**
+- Skript **2.12+**.
+- AuraSkills (للمستوى عبر placeholder `%auraskills_level%`).
+- GriefPrevention (`%griefprevention_remainingclaims%`).
+- PlaceholderAPI.
+- إضافة توفّر الأمر `acb`.
 
-- Skript **2.12 or newer**.
-- AuraSkills.
-- GriefPrevention.
-- PlaceholderAPI, with the relevant placeholders available:
-  - `%auraskills_level%`
-  - `%griefprevention_remainingclaims%`
-- A plugin or command provider that supplies the `acb` command.
+---
 
 ### 3. Item Admin
 
-![Item Admin — Minecraft administrative items and tools](item%20admin/item-admin.jpg)
+![Item Admin](item%20admin/item-admin.jpg)
 
-A rank-based administrative item and GUI concept, accompanied by audit, permission-check, quick-fix, and security-monitoring scripts.
+كتاب إداري بحسب الرتبة يفتح لوحة إدارة، مع سجل تدقيق وأوامر إصلاح سريعة.
 
-**Included files**
-
-| File | Purpose |
+| الملف | الوظيفة |
 |---|---|
-| [admin_item.sk](item%20admin/admin_item.sk) | Gives eligible ranks a named written book that opens the admin GUI when right-clicked. |
-| [admin_gui.sk](item%20admin/admin_gui.sk) | Builds a 27-slot admin panel with rank-dependent Clan, Player, Server Monitor, Quick Commands, and Security Tools buttons. |
-| [admin_permissions.sk](item%20admin/admin_permissions.sk) | Defines the `hasAdminPermission(player, action)` rank check for Owner, Admin, and Helper. |
-| [admin_audit.sk](item%20admin/admin_audit.sk) | Stores admin-action entries and provides the `/auditlog` command. |
-| [admin_quickfix.sk](item%20admin/admin_quickfix.sk) | Provides `/quickfix lag`, `/quickfix glitch`, and `/quickfix chunks` handlers. |
-| [security_guard.sk](item%20admin/security_guard.sk) | Periodically checks player height boundaries, TPS, and loaded-plugin status, reporting findings to console. |
+| [admin_item.sk](item%20admin/admin_item.sk) | `/getadminitem` وكتاب يفتح لوحة الإدارة عند النقر الأيمن. |
+| [admin_gui.sk](item%20admin/admin_gui.sk) | لوحة 27 خانة بأزرار حسب الرتبة. |
+| [admin_permissions.sk](item%20admin/admin_permissions.sk) | الدالة `hasAdminPermission(player, action)` وقواعد الرتب. |
+| [admin_audit.sk](item%20admin/admin_audit.sk) | سجل إجراءات الإدارة و`/auditlog`. |
+| [admin_quickfix.sk](item%20admin/admin_quickfix.sk) | `/quickfix lag`، `/quickfix glitch`، `/quickfix chunks`. |
 
-**Ranks represented in the scripts**
+**الرتب**
 
-| Rank | Intended access |
+| الرتبة | الصلاحيات |
 |---|---|
-| Owner | All defined admin actions, including Security Tools. |
-| Admin | Most admin actions; Security Tools and Delete Owner Clan are excluded by the permission function. |
-| Helper | Clan Management and Player Management. |
+| Owner | كل الإجراءات، بما فيها Security Tools. |
+| Admin | معظم الإجراءات، بدون Security Tools. |
+| Helper | Clan Management و Player Management فقط. |
 
-The scripts store these ranks in Skript variables under `{zmx.rank::%uuid%}`. They do not define a LuckPerms permission-node mapping in the current source.
+تُخزَّن الرتب في المتغير `{zmx.rank::<uuid>}`، ولا يوجد ربط بصلاحيات LuckPerms في الكود الحالي.
 
-**Commands**
+**الأوامر**
 
-| Command | Purpose |
+| الأمر | الوظيفة |
 |---|---|
-| `/getadminitem` | Give the named admin book to a player whose stored rank is Owner, Admin, or Helper. |
-| `/openadmingui [<player>]` | Open the administrative GUI (the current trigger operates on the executing player). |
-| `/auditlog` | Display stored audit entries, subject to the script's rank-variable check. |
-| `/quickfix lag` | Calls the external `lagfix` console command. |
-| `/quickfix glitch` | Returns players with a stored guard alert to the world spawn and clears that alert. |
-| `/quickfix chunks` | Invokes the script's chunk-regeneration loop. |
+| `/getadminitem` | يعطي كتاب الإدارة لمن رتبته Owner أو Admin أو Helper. |
+| `/openadmingui` | يفتح لوحة الإدارة للاعب المنفّذ. |
+| `/auditlog` | يعرض سجل التدقيق. |
+| `/quickfix lag` | ينفّذ الأمر الكونسولي `lagfix` (يتطلب توفّره). |
+| `/quickfix glitch` | ينقل اللاعبين الذين لديهم تنبيه ارتفاع (`zmx.guard.glitch`) إلى spawn ويمسح التنبيه. |
+| `/quickfix chunks` | يعيد توليد chunks العوالم (راجع قيود الصيغة أدناه). |
 
-**External integrations and placeholders**
+**التكاملات الخارجية**
 
-Some GUI actions deliberately call commands that must be supplied by other plugins or scripts. Examples in the current source include `openclanmenu`, `openplayermenu`, `showserverstatus`, `quickadmin`, `securitytools`, and `lagfix`. The audit script also contains example event-integration logic. These integrations should not be assumed to work until the corresponding providers and event syntax are configured and tested on the target server.
+أزرار اللوحة تستدعي أوامر كونسولية يجب أن توفّرها إضافات أو سكربتات أخرى:
+`openclanmenu`، `openplayermenu`، `showserverstatus`، `quickadmin`، `securitytools`، `lagfix`، `adminaction`.
 
-## Installation
+---
 
-1. Back up your server and existing Skript files.
-2. Install a Minecraft server implementation supported by your chosen Skript build.
-3. Install Skript. For the Claim group, use Skript 2.12 or newer.
-4. Install the dependencies listed for the group you intend to use.
-5. Review each script's options, placeholders, commands, and integrations.
-6. Copy only the required `.sk` files into the server's `plugins/Skript/scripts/` directory, preserving a clear folder structure if desired.
-7. Reload scripts from the server console or in-game with the appropriate Skript reload command.
-8. Check the console for parse errors and verify each feature in a test environment before production use.
+## الأدوات (tools/)
 
-Load related scripts together where they depend on shared functions or variables. In particular, Event Watchdog calls the Core Boot alert function, and the Claim GUI and Claim Security Guard use variables established by the claim-level script.
+ملف واحد بثلاثة أوامر، من جذر المستودع:
 
-## Repository Structure
-
-```text
-Groups-Scripts-MC/
-├── Core boot/
-│   ├── core_boot.sk
-│   ├── event_watchdog.sk
-│   └── core-boot.jpg
-├── claim (GriefPrevention)/
-│   ├── claim_by_level.sk
-│   ├── claim_gui.sk
-│   ├── security_guard.sk
-│   └── claim-griefprevention.jpg
-├── item admin/
-│   ├── admin_audit.sk
-│   ├── admin_gui.sk
-│   ├── admin_item.sk
-│   ├── admin_permissions.sk
-│   ├── admin_quickfix.sk
-│   ├── security_guard.sk
-│   └── item-admin.jpg
-├── Core boot.zip
-├── claim (GriefPrevention).zip
-├── item admin.zip
-└── README.md
+```bash
+python3 tools/repo_tool.py check     # فحص ملفات .sk الفعّالة (لا يعدّل شيئاً)
+python3 tools/repo_tool.py release   # بناء ZIP لكل مجموعة في releases/ (ملفات .sk فقط)
+python3 tools/repo_tool.py list      # عرض ملفات المستودع
 ```
 
-## Compatibility and Deployment Notes
+يكتشف `check` الأخطاء الشائعة: اقتباس غير متوازن، أقواس `{ }` غير متوازنة، تبويب في المسافة البادئة،
+قراءة معامل دالة كمتغير عام (مثل `{source}` بدل `{_source}`)، وعنوان كتلة بدون محتوى مُزاح.
+وينبّه إلى تعليقات `#` داخل قيم `options`.
 
-- Only the Claim group explicitly specifies a minimum Skript version in its source header. Confirm compatibility of the other scripts with your server, Skript version, and installed addons.
-- PlaceholderAPI placeholders must be available and return usable values; verify the relevant expansions before enabling the Claim group.
-- Commands referenced from scripts must exist on the server. Replace or implement integration placeholders where necessary.
-- Test GUI click handling, rank assignment, console commands, and recovery actions on a staging server first.
-- These files are provided as scripts for server administrators. No claim is made that every optional integration is preconfigured for every server environment.
+**ملاحظة:** الفحص لا يتحقق من صحة صيغة Skript الكاملة ولا من وجود الأوامر الخارجية؛ اختبار التحميل على السيرفر ضروري.
 
-## License
+## المجلدات
 
-No license file is currently included. Unless a license is added, all rights remain with the repository owner; contact the owner before redistributing or incorporating the scripts into another project.
+| المسار | المحتوى |
+|---|---|
+| `Core boot/`, `claim (GriefPrevention)/`, `item admin/` | السكربتات الفعّالة وصور كل مجموعة. |
+| `releases/` | ملفات ZIP محدّثة لكل مجموعة (تُبنى بـ `release`). |
+| `archive/` | نسخ مُستبدلة. `security_guard_item-admin_v1.1.sk` دُمجت في `claim (GriefPrevention)/security_guard.sk`. |
+| `archive/zips/` | ملفات ZIP القديمة قبل إعادة البناء. |
+| `tools/` | أدوات الفحص والبناء. |
+
+## التثبيت
+
+1. خذ نسخة احتياطية من السيرفر وملفات Skript الحالية.
+2. ثبّت Skript (2.12+ لمجموعة Claim) والإضافات المطلوبة.
+3. راجع الإعدادات (`options`) والـ placeholders والأوامر في كل ملف.
+4. انسخ الملفات المطلوبة إلى `plugins/Skript/scripts/`.
+5. أعد تحميل Skript وراجع الكونسول لأي أخطاء تحليل.
+6. اختبر كل ميزة على سيرفر تجريبي قبل الإنتاج.
+
+حمّل المجموعات المترابطة معاً:
+- **Event Watchdog** يستدعي دالة التنبيه في Core Boot.
+- **Claim GUI** و**Claim Security Guard** يعتمدان على `{zmx.claim.allowed::*}` من `claim_by_level.sk`.
+- **Item Admin Quick Fix** يعتمد على `{zmx.guard.glitch::*}` من `security_guard.sk`.
+
+## القيود المعروفة
+
+- **حركة Event Watchdog:** الحد الافتراضي `50` حركة في نافذة `5` ثوانٍ، والمشي الطبيعي قد يتجاوزه، فيظهر تحذير لكل لاعب يتحرك. الحد يحتاج ضبطاً.
+- **تكرار فحص الـ claims:** `security_guard.sk` و`claim_by_level.sk` (Strict Mode) يفحصان التجاوز نفسه ويعيدان الضبط نفسه. النتيجة تنبيهان في الكونسول، والتعطيل يتم من مكان واحد فقط حالياً.
+- **لوحة Item Admin:** `admin_gui.sk` ينفّذ أوامر الأزرار مباشرة، و`admin_permissions.sk` ينفّذ `adminaction` للأزرار نفسها، فقد يتكرر الإجراء. كما أن `admin_gui` لا يمر عبر `hasAdminPermission`.
+- **صيغ تحتاج تحققاً على السيرفر:** `on skript event` في `admin_audit.sk`، و`on console command ... with arguments`، و`regenerate chunks`، و`tps`، و`owner of claim at`، و`loop all loaded plugins`. قد تحتاج إضافات غير مثبتة أو لا تعمل كما هي.
+- **`/quickfix chunks`** و**`/auditlog`** يعتمدان على الصيغ أعلاه.
+- **سجلات النواة** (`zmx.core.logs`، `zmx.event.logs`) تنمو بلا حد. يمكن إضافة سقف لاحقاً.
+- **`core config`** غير موجود في هذا المستودع.
+
+## الترخيص
+
+لا يوجد ملف ترخيص. ما لم يُضف ترخيص، تبقى الحقوق لمالك المستودع؛ استأذن قبل إعادة النشر أو الدمج في مشروع آخر.
