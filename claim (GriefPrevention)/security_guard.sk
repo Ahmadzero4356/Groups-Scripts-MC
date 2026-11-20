@@ -8,7 +8,8 @@
 #################################################################
 
 options:
-    audit-interval: 60        # عدد الثواني بين كل فحص
+    # عدد الثواني بين كل فحص
+    audit-interval: 60
     console-prefix: "&4[ZMX-GUARD]"
 
 variables:

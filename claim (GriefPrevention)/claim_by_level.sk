@@ -11,10 +11,14 @@
 
 options:
     # ======= SETTINGS =======
-    base-claim: 100          # Claim blocks عند المستوى 1
-    claim-per-level: 75      # الزيادة لكل مستوى
-    max-claim: 50000         # الحد الأقصى (أمني)
-    audit-interval: 120      # فحص أمني كل X ثانية
+    # Claim blocks عند المستوى 1
+    base-claim: 100
+    # الزيادة لكل مستوى
+    claim-per-level: 75
+    # الحد الأقصى (أمني)
+    max-claim: 50000
+    # فحص أمني كل X ثانية
+    audit-interval: 120
     strict-mode: true
 
 #################################################################
@@ -31,7 +35,7 @@ variables:
 #################################################################
 
 function zmx_level(p: player) :: number:
-    set {_lvl} to placeholder "auraskills_level" of {_p}
+    set {_lvl} to placeholder "auraskills_level" of p
     if {_lvl} is not set:
         return 1
     return {_lvl} parsed as number
