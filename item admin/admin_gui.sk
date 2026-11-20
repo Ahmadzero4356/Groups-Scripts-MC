@@ -81,5 +81,5 @@ on inventory click:
         # Security Tools
         if {_slot} = {zmx.gui.buttons::SecurityTools}:
             execute console command "securitytools %{_p}%"
-            send "&c[ZMX] Opening Security Tools..." to {_p}"
+            send "&c[ZMX] Opening Security Tools..." to {_p}
             

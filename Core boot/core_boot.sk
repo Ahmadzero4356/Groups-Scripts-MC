@@ -44,20 +44,20 @@ on unload:
 function zmx_core_alert(source: text, level: text, detail: text, advice: text):
     set {_time} to now
     # Store log entry centrally
-    add "%{_time}% | %{source}% | %{level}% | %{detail}% | %{advice}%" to {zmx.core.logs::*}
+    add "%{_time}% | %{_source}% | %{_level}% | %{_detail}% | %{_advice}%" to {zmx.core.logs::*}
 
     # Display alert in console
     if {_level} is "CRITICAL":
         broadcast_console "{@zmx-prefix} {@zmx-alert-color}CRITICAL ISSUE DETECTED"
-        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Source: %{source}%"
-        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Detail: %{detail}%"
-        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Advice: %{advice}%"
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Source: %{_source}%"
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Detail: %{_detail}%"
+        broadcast_console "{@zmx-prefix} {@zmx-alert-color}Advice: %{_advice}%"
     else if {_level} is "WARNING":
         broadcast_console "{@zmx-prefix} {@zmx-warning-color}WARNING"
-        broadcast_console "{@zmx-prefix} &7Source: %{source}%"
-        broadcast_console "{@zmx-prefix} &7Detail: %{detail}%"
+        broadcast_console "{@zmx-prefix} &7Source: %{_source}%"
+        broadcast_console "{@zmx-prefix} &7Detail: %{_detail}%"
     else:
-        broadcast_console "{@zmx-prefix} {@zmx-info-color}INFO | %{source}% → %{detail}%"
+        broadcast_console "{@zmx-prefix} {@zmx-info-color}INFO | %{_source}% → %{_detail}%"
 
 #################################################################
 # CORE STATUS QUERY (FOR ADMIN ITEM / GUI)

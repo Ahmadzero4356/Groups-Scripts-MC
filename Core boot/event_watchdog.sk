@@ -12,7 +12,8 @@ options:
     zmx-info-color: &7
     zmx-spam-threshold: 50
     zmx-loop-threshold: 100
-    zmx-check-interval: 5 # seconds for periodic reset
+    # seconds for periodic reset
+    zmx-check-interval: 5
 
 #################################################################
 # INTERNAL STATE
@@ -31,7 +32,7 @@ set {zmx.event.spam_detected::*} to false
 function zmx_event_alert(source: text, level: text, detail: text, advice: text):
     zmx_core_alert(source, level, detail, advice)
     # Optional: store locally for Admin Item GUI
-    add "%now% | %{source}% | %{level}% | %{detail}% | %{advice}%" to {zmx.event.logs::*}
+    add "%now% | %{_source}% | %{_level}% | %{_detail}% | %{_advice}%" to {zmx.event.logs::*}
 
 #################################################################
 # EVENT MONITORING
